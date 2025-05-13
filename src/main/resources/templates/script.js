@@ -57,21 +57,26 @@ async function uploadFile() {
     
     if (method === "kmeans") {
         formData.append("numClusters", numClusters);
-    }
-
-    try {
+    }    try {
         const response = await fetch("http://localhost:8080/api/analyze/upload", {
             method: "POST",
             body: formData
         });
 
         if (response.ok) {
-            const result = await response.text();
-            resultContent.textContent = result;
+            const result = await response.json();
+            
+            // Guardar el resultado en localStorage
+            const resultId = Date.now().toString();
+            localStorage.setItem('analysisResult-' + resultId, JSON.stringify(result));
+            localStorage.setItem('lastAnalysisResult', JSON.stringify(result));
+            
+            // Redirigir a la página de resultados
+            window.location.href = '/result?id=' + resultId;
         } else {
-            resultContent.textContent = "Error en la solicitud: " + response.statusText;
+            resultContent.innerHTML = "<p>Error en la solicitud: " + response.statusText + "</p>";
         }
     } catch (error) {
-        resultContent.textContent = "Error al analizar el archivo: " + error.message;
+        resultContent.innerHTML = "<p>Error al analizar el archivo: " + error.message + "</p>";
     }
 }

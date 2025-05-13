@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados del Análisis</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Estilos para visualizaciones */
+        .visualizations-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .visualizations-section h3 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .visualizations-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .visualization-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 650px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .visualization-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .visualization-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="container">
+                <h1><i class="fas fa-chart-bar"></i> Resultados del Análisis</h1>
+                <nav>
+                    <ul>
+                        <li><a href="/"><i class="fas fa-home"></i> Inicio</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+            <div class="result-section">
+                <h3><i class="fas fa-poll"></i> Resultados del Modelo</h3>
+                <div class="result-content" id="resultContent">
+                    <!-- Los resultados se cargarán aquí -->
+                </div>
+
+                <div class="visualizations-section hidden" id="visualizationsSection">
+                    <h3><i class="fas fa-chart-line"></i> Visualizaciones</h3>
+                    <div class="visualizations-container" id="visualizationsContainer">
+                        <!-- Las visualizaciones se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Análisis de datos con WEKA</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const resultId = urlParams.get('id');
+            
+            if (resultId) {
+                // Si tenemos un ID de resultado, cargar desde el almacenamiento
+                const storedResult = localStorage.getItem('analysisResult-' + resultId);
+                if (storedResult) {
+                    displayResults(JSON.parse(storedResult));
+                } else {
+                    document.getElementById('resultContent').innerHTML = '<p>No se encontraron resultados con el ID proporcionado.</p>';
+                }
+            } else {
+                // Si no hay ID, mostrar el último resultado
+                const lastResultJson = localStorage.getItem('lastAnalysisResult');
+                if (lastResultJson) {
+                    displayResults(JSON.parse(lastResultJson));
+                } else {
+                    document.getElementById('resultContent').innerHTML = '<p>No hay resultados disponibles.</p>';
+                }
+            }
+        });
+
+        function displayResults(result) {
+            // Mostrar el texto en formato preformateado
+            document.getElementById('resultContent').innerHTML = '<pre>' + result.textResult + '</pre>';
+            
+            // Mostrar las visualizaciones si existen
+            if (result.images && result.images.length > 0) {
+                const visualizationsSection = document.getElementById('visualizationsSection');
+                visualizationsSection.classList.remove('hidden');
+                
+                const visualizationsContainer = document.getElementById('visualizationsContainer');
+                visualizationsContainer.innerHTML = '';
+                
+                result.images.forEach((imgBase64, index) => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'visualization-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = 'data:image/png;base64,' + imgBase64;
+                    img.alt = 'Visualización ' + (index + 1);
+                    
+                    imgContainer.appendChild(img);
+                    visualizationsContainer.appendChild(imgContainer);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

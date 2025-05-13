@@ -2,6 +2,8 @@ package com.example.demo.controller;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
+import com.example.demo.model.ModelResult;
 import weka.core.Instances;
 import weka.core.converters.CSVLoader;
 import weka.clusterers.SimpleKMeans;
@@ -10,17 +12,28 @@ import weka.filters.unsupervised.attribute.Remove;
 import weka.classifiers.trees.J48;
 import weka.classifiers.Evaluation;
 import weka.classifiers.functions.MultilayerPerceptron;
+import weka.classifiers.evaluation.ThresholdCurve;
+import weka.gui.treevisualizer.PlaceNode2;
+import weka.gui.treevisualizer.TreeVisualizer;
+import weka.gui.visualize.PlotData2D;
+import weka.gui.visualize.ThresholdVisualizePanel;
+import weka.gui.visualize.VisualizePanel;
 
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.util.Random;
+import java.util.Base64;
+import javax.imageio.ImageIO;
 
 @RestController
 @RequestMapping("/api/analyze")
 public class WekaController {
 
-    @PostMapping("/upload")
-    public String analyzeFile(
+    // Directorio para guardar imágenes temporales
+    private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
+
+    @PostMapping(value = "/upload", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ModelResult analyzeFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("method") String method,
             @RequestParam(value = "evaluation", required = false) String evaluationMethod,
@@ -41,10 +54,10 @@ public class WekaController {
             }
 
             // Llamar al método correspondiente
-            String result;
+            ModelResult result = new ModelResult();
             switch (method) {
                 case "kmeans":
-                    result =performKMeans(data, numClusters);
+                    result = performKMeans(data, numClusters);
                     break;
                 case "classificationj48":
                     result = performClassificationJ48(data, evaluationMethod);
@@ -55,14 +68,24 @@ public class WekaController {
                     break;
 
                 default:
-                    result = "Método no reconocido.";
+                    result.setTextResult("Método no reconocido.");
             }
 
             return result;
         } catch (Exception e) {
             e.printStackTrace();
-            return "Error durante el análisis: " + e.getMessage();
+            ModelResult errorResult = new ModelResult();
+            errorResult.setTextResult("Error durante el análisis: " + e.getMessage());
+            return errorResult;
         }
+    }
+    
+    // Método auxiliar para guardar imagen como Base64
+    private String saveImageAsBase64(BufferedImage image) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", baos);
+        byte[] imageBytes = baos.toByteArray();
+        return Base64.getEncoder().encodeToString(imageBytes);
     }
 
     private Instances loadCSV(InputStream inputStream) throws Exception {
@@ -75,8 +98,8 @@ public class WekaController {
         return new Instances(new InputStreamReader(inputStream));
     }
 
-  
-    private String performKMeans(Instances data, int numClusters) {
+    private ModelResult performKMeans(Instances data, int numClusters) {
+        ModelResult modelResult = new ModelResult();
         try {
             // Eliminar el atributo de clase antes de clustering
             Remove remove = new Remove();
@@ -137,14 +160,37 @@ public class WekaController {
             result.append("\nIncorrectly clustered instances: ").append(incorrectCount).append(" (")
                   .append((incorrectCount / data.numInstances()) * 100).append("%)\n");
 
-            return result.toString();
+            modelResult.setTextResult(result.toString());
+            
+            // Crear visualización del clustering
+            if (dataWithoutClass.numAttributes() >= 2) {
+                // Creamos un gráfico de dispersión para visualizar los clusters
+                VisualizePanel visPanel = new VisualizePanel();
+                PlotData2D plotData = new PlotData2D(dataWithoutClass);
+                
+                // Configurar los colores según el cluster asignado
+                int[] clusterAssignments = new int[dataWithoutClass.numInstances()];
+                for (int i = 0; i < dataWithoutClass.numInstances(); i++) {
+                    clusterAssignments[i] = kMeans.clusterInstance(dataWithoutClass.instance(i));
+                }
+                
+                plotData.setPlotName("K-Means Clustering");
+                
+                visPanel.addPlot(plotData);
+                visPanel.setSize(600, 400);
+                
+                // Generar imagen y guardar como base64
+                BufferedImage image = new BufferedImage(600, 400, BufferedImage.TYPE_INT_ARGB);
+                visPanel.paint(image.getGraphics());
+                modelResult.addImage(saveImageAsBase64(image));
+            }            return modelResult;
         } catch (Exception e) {
             e.printStackTrace();
-            return "Error al realizar K-Means: " + e.getMessage();
+            modelResult.setTextResult("Error al realizar K-Means: " + e.getMessage());
+            return modelResult;
         }
-    }
-
-    private String performClassificationJ48(Instances data, String evaluationMethod) {
+    }    private ModelResult performClassificationJ48(Instances data, String evaluationMethod) {
+    ModelResult modelResult = new ModelResult();
     try {
         // Crear un clasificador J48 (C4.5)
         J48 j48 = new J48();
@@ -178,16 +224,54 @@ public class WekaController {
         result.append("\n\n=== Árbol de Decisión ===\n");
         result.append(j48.toString());
         
+        modelResult.setTextResult(result.toString());
+        
+        // Generar visualización del árbol de decisión
+        try {
+            // Visualización del árbol de decisión
+            TreeVisualizer treeVisualizer = new TreeVisualizer(null, j48.graph(), 
+                                                            new PlaceNode2());
+            treeVisualizer.setSize(800, 600);
+            
+            // Generar imagen del árbol
+            BufferedImage image = new BufferedImage(800, 600, BufferedImage.TYPE_INT_ARGB);
+            treeVisualizer.paint(image.getGraphics());
+            modelResult.addImage(saveImageAsBase64(image));
+            
+            // Generar curva ROC para la primera clase (si es clasificación binaria)
+            if (data.classAttribute().numValues() == 2) {
+                ThresholdCurve tc = new ThresholdCurve();
+                int classIndex = 0; // Primera clase
+                Instances tcurve = tc.getCurve(eval.predictions(), classIndex);
+                
+                // Visualizar curva ROC
+                ThresholdVisualizePanel tvp = new ThresholdVisualizePanel();
+                tvp.setROCString("ROC - Clase: " + data.classAttribute().value(classIndex));
+                tvp.setName("Curva ROC");
+                
+                PlotData2D plotdata = new PlotData2D(tcurve);
+                plotdata.setPlotName("ROC");
+                plotdata.m_alwaysDisplayPointsOfThisSize = 10;
+                tvp.addPlot(plotdata);
+                tvp.setSize(600, 400);
+                
+                BufferedImage rocImage = new BufferedImage(600, 400, BufferedImage.TYPE_INT_ARGB);
+                tvp.paint(rocImage.getGraphics());
+                modelResult.addImage(saveImageAsBase64(rocImage));
+            }
+        } catch (Exception e) {
+            System.out.println("Error al generar visualizaciones: " + e.getMessage());
+            e.printStackTrace();
+        }
 
-        return result.toString();
-    } catch (Exception e) {
+        return modelResult;    } catch (Exception e) {
         e.printStackTrace();
-        return "Error al realizar la clasificación: " + e.getMessage();
+        modelResult.setTextResult("Error al realizar la clasificación: " + e.getMessage());
+        return modelResult;
     }
 }
-
-
-    private String performMLPClassification(Instances data, String evaluationMethod) {
+    private ModelResult performMLPClassification(Instances data, String evaluationMethod) {
+    ModelResult modelResult = new ModelResult();
     try {
         // Crear y configurar el clasificador MLP
         MultilayerPerceptron mlp = new MultilayerPerceptron();
@@ -216,13 +300,60 @@ public class WekaController {
         result.append(eval.toClassDetailsString());
         result.append("\n\n=== Matriz de Confusión ===\n");
         result.append(eval.toMatrixString());
+        
+        // Añadir información sobre la arquitectura de la red
+        result.append("\n\n=== Arquitectura de la Red Neural ===\n");
+        result.append(mlp.toString());
 
-        return result.toString();
-    } catch (Exception e) {
-        e.printStackTrace();
-        return "Error al realizar la clasificación con MLP: " + e.getMessage();
+        modelResult.setTextResult(result.toString());
+        
+        // Generar visualizaciones
+        try {
+            // Generar curva ROC para varias clases
+            for (int classIndex = 0; classIndex < data.classAttribute().numValues(); classIndex++) {
+                if (classIndex > 2) break; // Limitar a 3 curvas máximo para no sobrecargar
+                
+                ThresholdCurve tc = new ThresholdCurve();
+                Instances tcurve = tc.getCurve(eval.predictions(), classIndex);
+                
+                // Visualizar curva ROC
+                ThresholdVisualizePanel tvp = new ThresholdVisualizePanel();
+                tvp.setROCString("ROC - Clase: " + data.classAttribute().value(classIndex));
+                tvp.setName("Curva ROC");
+                
+                PlotData2D plotdata = new PlotData2D(tcurve);
+                plotdata.setPlotName("ROC para clase " + data.classAttribute().value(classIndex));
+                plotdata.m_alwaysDisplayPointsOfThisSize = 10;
+                tvp.addPlot(plotdata);
+                tvp.setSize(600, 400);
+                
+                BufferedImage rocImage = new BufferedImage(600, 400, BufferedImage.TYPE_INT_ARGB);
+                tvp.paint(rocImage.getGraphics());
+                modelResult.addImage(saveImageAsBase64(rocImage));
+            }
+            
+            // Mostrar gráfico de predicciones vs reales (para las primeras instancias)
+            int numInstancesToShow = Math.min(30, data.numInstances());
+            VisualizePanel predVsActual = new VisualizePanel();
+            PlotData2D plotPredictions = new PlotData2D(data);
+            plotPredictions.setPlotName("Predicciones vs. Valores Reales");
+            predVsActual.addPlot(plotPredictions);
+            predVsActual.setSize(600, 400);
+            
+            BufferedImage predVsActualImage = new BufferedImage(600, 400, BufferedImage.TYPE_INT_ARGB);
+            predVsActual.paint(predVsActualImage.getGraphics());
+            modelResult.addImage(saveImageAsBase64(predVsActualImage));
+            
+        } catch (Exception e) {
+            System.out.println("Error al generar visualizaciones: " + e.getMessage());
+            e.printStackTrace();
+        }        return modelResult;
+        } catch (Exception e) {
+            e.printStackTrace();
+            modelResult.setTextResult("Error al realizar la clasificación con MLP: " + e.getMessage());
+            return modelResult;
+        }
     }
-}
 
 }
 
