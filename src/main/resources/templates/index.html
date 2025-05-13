@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Archivos WEKA</title>
+    <style>
+        /* Estilos para la sección de limpieza */
+.clean-section {
+    background-color: var(--white-color);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    border-top: 4px solid var(--success-color);
+}
+
+.clean-section h2 {
+    color: var(--dark-color);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.clean-section h2 i {
+    margin-right: 10px;
+    color: var(--success-color);
+}
+
+.clean-form {
+    margin-top: 1.5rem;
+}
+
+.clean-btn {
+    background-color: var(--success-color);
+    color: var(--white-color);
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    font-weight: 500;
+    margin-top: 1.5rem;
+}
+
+.clean-btn i {
+    margin-right: 8px;
+}
+
+.clean-btn:hover {
+    background-color: #27ae60;
+}
+
+.status-message {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--success-color);
+    display: none; /* Oculto por defecto */
+}
+
+/* Estilos para mensajes de estado */
+.status-success {
+    display: block !important;
+    background-color: #e8f5e9;
+    border-left-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.status-error {
+    display: block !important;
+    background-color: #ffebee;
+    border-left-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.status-processing {
+    display: block !important;
+    background-color: #e3f2fd;
+    border-left-color: var(--primary-color);
+    color: var(--primary-color);
+}
+        /* Variables de color */
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2980b9;
+    --dark-color: #2c3e50;
+    --light-color: #ecf0f1;
+    --success-color: #2ecc71;
+    --danger-color: #e74c3c;
+    --gray-color: #95a5a6;
+    --white-color: #ffffff;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos generales */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f7fa;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Header */
+header {
+    background-color: var(--dark-color);
+    color: var(--white-color);
+    padding: 1rem 0;
+    box-shadow: var(--shadow);
+}
+
+header h1 {
+    display: flex;
+    align-items: center;
+    font-size: 1.8rem;
+    font-weight: 500;
+}
+
+header h1 i {
+    margin-right: 10px;
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    margin-top: 1rem;
+}
+
+nav ul li a {
+    color: var(--white-color);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+}
+
+nav ul li a i {
+    margin-right: 8px;
+}
+
+nav ul li a:hover, nav ul li a.active {
+    background-color: var(--primary-color);
+}
+
+/* Main content */
+main {
+    padding: 2rem 0;
+}
+
+.upload-section {
+    background-color: var(--white-color);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.upload-section h2 {
+    color: var(--dark-color);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.upload-section h2 i {
+    margin-right: 10px;
+    color: var(--primary-color);
+}
+
+/* File upload */
+.file-upload {
+    margin-bottom: 1.5rem;
+}
+
+.upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    border: 2px dashed var(--gray-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.upload-label:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+.upload-label i {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.upload-label span {
+    color: var(--dark-color);
+    font-weight: 500;
+}
+
+#fileInput {
+    display: none;
+}
+
+.file-name {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--gray-color);
+    font-style: italic;
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+}
+
+.form-group label i {
+    margin-right: 8px;
+    color: var(--primary-color);
+}
+
+select, input[type="number"] {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+select:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.hidden {
+    display: none;
+}
+
+/* Button */
+.analyze-btn {
+    background-color: var(--primary-color);
+    color: var(--white-color);
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    font-weight: 500;
+}
+
+.analyze-btn i {
+    margin-right: 8px;
+}
+
+.analyze-btn:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Results section */
+.result-section {
+    background-color: var(--white-color);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+}
+
+.result-section h3 {
+    color: var(--dark-color);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.result-section h3 i {
+    margin-right: 10px;
+    color: var(--primary-color);
+}
+
+.result-content {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 4px;
+    border-left: 4px solid var(--primary-color);
+    white-space: pre-wrap;
+    max-height: 500px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+/* Footer */
+footer {
+    background-color: var(--dark-color);
+    color: var(--white-color);
+    padding: 1rem 0;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+footer p {
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    nav ul {
+        margin-top: 0;
+    }
+    
+    .analyze-btn {
+        width: auto;
+    }
+}
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-chart-line"></i> Analisis con WEKA</h1>
+            <nav>
+                <ul>
+                    <!-- <li><a href="#" class="active"><i class="fas fa-home"></i> Inicio</a></li> -->
+                    <li><a href="#limpieza"><i class="fas fa-broom"></i> Limpieza</a></li>
+                    <li><a href="#analisis"><i class="fas fa-chart-bar"></i> Análisis</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+<section id="limpieza" class="clean-section">
+    <h2><i class="fas fa-broom"></i> Limpieza de Dataset CSV</h2>
+    
+    <form id="uploadForm" class="clean-form">
+        <div class="form-group">
+            <label for="file"><i class="fas fa-file-csv"></i> Selecciona un archivo CSV:</label>
+            <div class="file-upload">
+                <label for="file" class="upload-label">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Arrastra tu archivo CSV aquí o haz clic para seleccionar</span>
+                    <input type="file" id="file" name="file" accept=".csv" required>
+                </label>
+                <div id="fileName" class="file-name">Ningún archivo seleccionado</div>
+            </div>
+        </div>
+        
+        <button type="submit" class="clean-btn">
+            <i class="fas fa-magic"></i> Subir y limpiar
+        </button>
+    </form>
+    
+    <div id="status" class="status-message"></div>
+</section>
+    <script>
+        
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Por favor, selecciona un archivo CSV.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload2', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor.');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'cleaned_dataset.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                document.getElementById('status').textContent = 'Archivo procesado y descargado exitosamente.';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('status').textContent = 'Ocurrió un error al procesar el archivo.';
+            });
+        });
+    </script>
+
+    <main class="container" id="analisis">
+        <section class="upload-section">
+            <h2><i class="fas fa-upload"></i> Subir Archivos para Análisis WEKA</h2>
+            
+            <div class="file-upload">
+                <label for="fileInput" class="upload-label">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Selecciona o arrastra tu archivo</span>
+                    <input type="file" id="fileInput" accept=".csv, .arff">
+                </label>
+                <div id="fileName" class="file-name">Ningún archivo seleccionado</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="method"><i class="fas fa-project-diagram"></i> Método de análisis:</label>
+                <select id="method" name="method" onchange="toggleEvaluationOptions()">
+                    <option value="classificationj48">Clasificación J48</option>
+                    <option value="kmeans">K-Means</option>
+                    <option value="mlp">MLP</option>
+                </select>
+            </div>
+
+            <div id="evaluationOptions" class="form-group hidden">
+                <label for="evaluation"><i class="fas fa-check-circle"></i> Método de evaluación:</label>
+                <select id="evaluation" name="evaluation">
+                    <option value="use-training-set">Usar conjunto de entrenamiento</option>
+                    <option value="cross-validation">Validación cruzada</option>
+                </select>
+            </div>
+
+            <div id="numClustersDiv" class="form-group hidden">
+                <label for="numClusters"><i class="fas fa-clone"></i> Número de Clusters:</label>
+                <input type="number" id="numClusters" name="numClusters" min="1" value="3">
+            </div>
+
+            <button class="analyze-btn" onclick="uploadFile()">
+                <i class="fas fa-magic"></i> Analizar Archivo
+            </button>
+        </section>
+
+        <section id="result" class="result-section hidden">
+            <h3><i class="fas fa-poll"></i> Resultados del Análisis</h3>
+            <div class="result-content" id="resultContent"></div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>© 2025 Inteligencia no tan Artificial</p>
+        </div>
+    </footer>
+
+    <script >document.addEventListener('DOMContentLoaded', function() {
+    toggleEvaluationOptions();
+    
+    // Mostrar nombre del archivo seleccionado
+    const fileInput = document.getElementById('fileInput');
+    const fileNameDisplay = document.getElementById('fileName');
+    
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            fileNameDisplay.textContent = this.files[0].name;
+        } else {
+            fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+        }
+    });
+});
+
+function toggleEvaluationOptions() {
+    const method = document.getElementById('method').value;
+    const evaluationOptions = document.getElementById('evaluationOptions');
+    const numClustersDiv = document.getElementById('numClustersDiv');
+    
+    evaluationOptions.classList.add('hidden');
+    numClustersDiv.classList.add('hidden');
+    
+    if (method === "classificationj48") {
+        evaluationOptions.classList.remove('hidden');
+    } else if (method === "kmeans") {
+        numClustersDiv.classList.remove('hidden');
+    }
+}
+
+async function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    if (!file) {
+        alert("Por favor, selecciona un archivo antes de continuar");
+        return;
+    }
+
+    const method = document.getElementById('method').value;
+    const evaluation = document.getElementById('evaluation')?.value || "";
+    const numClusters = document.getElementById('numClusters')?.value || "";
+    
+    const resultSection = document.getElementById('result');
+    const resultContent = document.getElementById('resultContent');
+    
+    resultContent.textContent = "Analizando archivo, por favor espera...";
+    resultSection.classList.remove('hidden');
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("method", method);
+    
+    if (method === "classificationj48") {
+        formData.append("evaluation", evaluation);
+    }
+    
+    if (method === "kmeans") {
+        formData.append("numClusters", numClusters);
+    }
+
+    try {
+        const response = await fetch("http://localhost:8080/api/analyze/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.text();
+            resultContent.textContent = result;
+        } else {
+            resultContent.textContent = "Error en la solicitud: " + response.statusText;
+        }
+    } catch (error) {
+        resultContent.textContent = "Error al analizar el archivo: " + error.message;
+    }
+}</script>
+</body>
+</html>
