@@ -15,6 +15,11 @@ import weka.classifiers.functions.MultilayerPerceptron;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import weka.classifiers.trees.J48;
+import weka.classifiers.Evaluation;
+import weka.core.Instances;
+import org.json.JSONObject;
+
 @RestController
 @RequestMapping("/api/analyze")
 public class WekaController {
@@ -24,6 +29,7 @@ public class WekaController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("method") String method,
             @RequestParam(value = "evaluation", required = false) String evaluationMethod,
+            @RequestParam(value = "targetAttribute", required = false) String targetAttributeName,
             @RequestParam(value = "numClusters", required = false, defaultValue = "3") int numClusters) {
         try {
             // Determinar el tipo de archivo (CSV o ARFF) y cargar los datos adecuadamente
@@ -47,7 +53,7 @@ public class WekaController {
                     result =performKMeans(data, numClusters);
                     break;
                 case "classificationj48":
-                    result = performClassificationJ48(data, evaluationMethod);
+                    result = performClassificationJ48(data, evaluationMethod, targetAttributeName);
                     break;
                 
                 case "mlp":
@@ -144,9 +150,11 @@ public class WekaController {
         }
     }
 
-    private String performClassificationJ48(Instances data, String evaluationMethod) {
+
+/*     
+public String performClassificationJ48(Instances data, String evaluationMethod) {
     try {
-        // Crear un clasificador J48 (C4.5)
+        // Crear un clasificador J48
         J48 j48 = new J48();
         j48.buildClassifier(data);
 
@@ -155,39 +163,68 @@ public class WekaController {
         if ("cross-validation".equalsIgnoreCase(evaluationMethod)) {
             eval = new Evaluation(data);
             eval.crossValidateModel(j48, data, 10, new java.util.Random(1));
-        } else { // Por defecto: usar conjunto de entrenamiento
+        } else {
             eval = new Evaluation(data);
             eval.evaluateModel(j48, data);
         }
 
-        // Crear un StringBuilder para los resultados
-        StringBuilder result = new StringBuilder("Resultados de la Clasificación:\n");
+        // Crear el JSON con las secciones
+        JSONObject resultJson = new JSONObject();
 
-        // Resultado de la evaluación general
-        result.append(eval.toSummaryString("\nResultados de la Evaluación\n", false));
-
-        // Detalles de la precisión por clase
-        result.append("\n\n=== Precisión Detallada Por Clase ===\n");
-        result.append(eval.toClassDetailsString());
-
-        // Matriz de confusión
-        result.append("\n\n=== Matriz de Confusión ===\n");
-        result.append(eval.toMatrixString());
-
-        // Representación del árbol de decisión
-        result.append("\n\n=== Árbol de Decisión ===\n");
-        result.append(j48.toString());
+        resultJson.put("resumenEvaluacion", eval.toSummaryString("", false));
+        resultJson.put("precisionPorClase", eval.toClassDetailsString());
+        resultJson.put("matrizConfusion", eval.toMatrixString());
+        resultJson.put("arbolDecision", j48.graph());
         
 
-        return result.toString();
+        return resultJson.toString(2); // Indentado bonito
     } catch (Exception e) {
         e.printStackTrace();
-        return "Error al realizar la clasificación: " + e.getMessage();
+        return "{\"error\":\"Error al realizar la clasificación: " + e.getMessage() + "\"}";
     }
 }
 
+*/
+public String performClassificationJ48(Instances data, String evaluationMethod, String targetAttributeName) {
+    try {
+        // Verificar si el atributo target existe
+        if (data.attribute(targetAttributeName) == null) {
+            return "{\"error\":\"El atributo target '" + targetAttributeName + "' no existe en los datos.\"}";
+        }
 
-    private String performMLPClassification(Instances data, String evaluationMethod) {
+        // Establecer el atributo class (target)
+        data.setClass(data.attribute(targetAttributeName));
+
+        // Crear un clasificador J48
+        J48 j48 = new J48();
+        j48.buildClassifier(data);
+
+        // Evaluar el modelo
+        Evaluation eval;
+        if ("cross-validation".equalsIgnoreCase(evaluationMethod)) {
+            eval = new Evaluation(data);
+            eval.crossValidateModel(j48, data, 10, new java.util.Random(1));
+        } else {
+            eval = new Evaluation(data);
+            eval.evaluateModel(j48, data);
+        }
+
+        // Crear el JSON con las secciones
+        JSONObject resultJson = new JSONObject();
+
+        resultJson.put("resumenEvaluacion", eval.toSummaryString("", false));
+        resultJson.put("precisionPorClase", eval.toClassDetailsString());
+        resultJson.put("matrizConfusion", eval.toMatrixString());
+        resultJson.put("arbolDecision", j48.graph());
+
+        return resultJson.toString(2); // Indentado bonito
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "{\"error\":\"Error al realizar la clasificación: " + e.getMessage() + "\"}";
+    }
+}
+
+private String performMLPClassification(Instances data, String evaluationMethod) {
     try {
         // Crear y configurar el clasificador MLP
         MultilayerPerceptron mlp = new MultilayerPerceptron();
