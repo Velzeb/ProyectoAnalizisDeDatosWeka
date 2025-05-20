@@ -560,6 +560,9 @@ async function uploadFile() {
     if (method === "kmeans") {
         formData.append("numClusters", numClusters);
     }
+    if (method === "mlp") {
+        formData.append("targetAttribute", targetAttribute);
+    }
 
     try {
         const response = await fetch("http://localhost:8080/api/analyze/upload", {
@@ -623,18 +626,22 @@ function toggleEvaluationOptions() {
     targetAttributeGroup.classList.add('hidden');
     numClustersDiv.classList.add('hidden');
 
-    if (method === "classificationj48") {
+    if (method === "classificationj48"  ) {
         evaluationOptions.classList.remove('hidden');
         targetAttributeGroup.classList.remove('hidden');
     } else if (method === "kmeans") {
         numClustersDiv.classList.remove('hidden');
+    } else if( method === "mlp"){
+        targetAttributeGroup.classList.remove('hidden');
+        
+
     }
 }
 
 function toggleTargetAttributeVisibility() {
     const method = document.getElementById('method').value;
     const targetAttributeGroup = document.getElementById('targetAttributeGroup');
-    if (method === "classificationj48") {
+    if (method === "classificationj48" || method==="mlp") {
         targetAttributeGroup.classList.remove('hidden');
     } else {
         targetAttributeGroup.classList.add('hidden');

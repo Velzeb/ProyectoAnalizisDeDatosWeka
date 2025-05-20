@@ -30,6 +30,7 @@ public class WekaController {
             @RequestParam("method") String method,
             @RequestParam(value = "evaluation", required = false) String evaluationMethod,
             @RequestParam(value = "targetAttribute", required = false) String targetAttributeName,
+            
             @RequestParam(value = "numClusters", required = false, defaultValue = "3") int numClusters) {
         try {
             // Determinar el tipo de archivo (CSV o ARFF) y cargar los datos adecuadamente
@@ -57,7 +58,7 @@ public class WekaController {
                     break;
                 
                 case "mlp":
-                    result = performMLPClassification(data, evaluationMethod);
+                    result = performMLPClassification(data, evaluationMethod, targetAttributeName);
                     break;
 
                 default:
@@ -224,6 +225,7 @@ public String performClassificationJ48(Instances data, String evaluationMethod, 
     }
 }
 
+/*  
 private String performMLPClassification(Instances data, String evaluationMethod) {
     try {
         // Crear y configurar el clasificador MLP
@@ -260,6 +262,50 @@ private String performMLPClassification(Instances data, String evaluationMethod)
         return "Error al realizar la clasificación con MLP: " + e.getMessage();
     }
 }
+*/
+private String performMLPClassification(Instances data, String evaluationMethod, String targetAttributeName) {
+    try {
+        // Verificar si el atributo target existe
+        if (data.attribute(targetAttributeName) == null) {
+            return "Error: El atributo target '" + targetAttributeName + "' no existe en los datos.";
+        }
 
+        // Establecer el atributo class (target)
+        data.setClass(data.attribute(targetAttributeName));
+
+        // Crear y configurar el clasificador MLP
+        MultilayerPerceptron mlp = new MultilayerPerceptron();
+        mlp.setLearningRate(0.3);
+        mlp.setMomentum(0.2);
+        mlp.setTrainingTime(500);
+        mlp.setHiddenLayers("a"); // 'a' para (atributos + clases) / 2
+
+        // Construir el clasificador
+        mlp.buildClassifier(data);
+
+        // Evaluar el modelo
+        Evaluation eval;
+        if ("cross-validation".equalsIgnoreCase(evaluationMethod)) {
+            eval = new Evaluation(data);
+            eval.crossValidateModel(mlp, data, 10, new java.util.Random(1));
+        } else {
+            eval = new Evaluation(data);
+            eval.evaluateModel(mlp, data);
+        }
+
+        // Construir el resultado
+        StringBuilder result = new StringBuilder("Resultados de la Clasificación con MLP:\n");
+        result.append(eval.toSummaryString("\nResumen de la Evaluación\n", false));
+        result.append("\n\n=== Precisión Detallada por Clase ===\n");
+        result.append(eval.toClassDetailsString());
+        result.append("\n\n=== Matriz de Confusión ===\n");
+        result.append(eval.toMatrixString());
+
+        return result.toString();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "Error al realizar la clasificación con MLP: " + e.getMessage();
+    }
+}
 }
 

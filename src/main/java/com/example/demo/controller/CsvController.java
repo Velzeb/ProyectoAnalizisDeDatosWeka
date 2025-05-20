@@ -95,16 +95,99 @@ public ResponseEntity<byte[]> handleFileUpload(@RequestParam("file") MultipartFi
 // Función auxiliar para limpiar texto: minúsculas, sin acentos ni caracteres raros
 private String cleanString(String input) {
     if (input == null) return "";
+
     // Convertir a minúsculas
     String result = input.toLowerCase();
 
-    // Eliminar acentos
-    result = Normalizer.normalize(result, Normalizer.Form.NFD);
-    result = result.replaceAll("\\p{M}", "");
+    // Reemplazar acentos
+    result = quitarAcentos(result);
 
     // Eliminar caracteres no alfanuméricos (excepto puntuación básica y espacio)
     result = result.replaceAll("[^\\p{L}\\p{N}\\p{P}\\p{Z}]", "");
 
     return result.trim();
+}
+
+// Función auxiliar para quitar acentos (reemplazándolos)
+private String quitarAcentos(String input) {
+    if (input == null) {
+        return null;
+    }
+    StringBuilder output = new StringBuilder();
+    for (int i = 0; i < input.length(); i++) {
+        char c = input.charAt(i);
+        switch (c) {
+            case 'á':
+            case 'à':
+            case 'â':
+            case 'ä':
+                output.append('a');
+                break;
+            case 'é':
+            case 'è':
+            case 'ê':
+            case 'ë':
+                output.append('e');
+                break;
+            case 'í':
+            case 'ì':
+            case 'î':
+            case 'ï':
+                output.append('i');
+                break;
+            case 'ó':
+            case 'ò':
+            case 'ô':
+            case 'ö':
+                output.append('o');
+                break;
+            case 'ú':
+            case 'ù':
+            case 'û':
+            case 'ü':
+                output.append('u');
+                break;
+            case 'ñ':
+                output.append('n');
+                break;
+            case 'Á':
+            case 'À':
+            case 'Â':
+            case 'Ä':
+                output.append('A');
+                break;
+            case 'É':
+            case 'È':
+            case 'Ê':
+            case 'Ë':
+                output.append('E');
+                break;
+            case 'Í':
+            case 'Ì':
+            case 'Î':
+            case 'Ï':
+                output.append('I');
+                break;
+            case 'Ó':
+            case 'Ò':
+            case 'Ô':
+            case 'Ö':
+                output.append('O');
+                break;
+            case 'Ú':
+            case 'Ù':
+            case 'Û':
+            case 'Ü':
+                output.append('U');
+                break;
+            case 'Ñ':
+                output.append('N');
+                break;
+            default:
+                output.append(c);
+                break;
+        }
+    }
+    return output.toString();
 }
 }
