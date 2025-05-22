@@ -60,7 +60,7 @@ async function uploadFileForAttributes(file) {
     formData.append("file", file);
 
     try {
-        const response = await fetch("http://localhost:8080/api/upload/attributes", {
+        const response = await fetch("/api/upload/attributes", {
             method: "POST",
             body: formData
         });
